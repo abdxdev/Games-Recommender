@@ -3,4 +3,3 @@
 __pycache__/
 datasets/*csv
 datasets/*json
-prompt.md
