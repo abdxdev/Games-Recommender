@@ -1,6 +1,6 @@
 .venv
 .env
 __pycache__/
-datasets/*csv
-datasets/*json
+dataset/*csv
+dataset/*json
 *.pkl

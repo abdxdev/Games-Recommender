@@ -29,7 +29,7 @@ steam-game-recommender/
 ├── models/
 │   ├── recommendation_models.py  # Implementation of recommendation algorithms
 │   └── model_evaluation.py      # Evaluation of recommendation algorithms
-├── datasets/               # Dataset files
+├── dataset/               # Dataset files
 │   ├── games.csv           # Game information
 │   ├── users.csv           # User information
 │   ├── recommendations.csv  # User game interactions and recommendations
@@ -46,7 +46,7 @@ steam-game-recommender/
 pip install -r requirements.txt
 ```
 
-3. Place the dataset files in the `datasets/` directory (games.csv, users.csv, recommendations.csv, games_metadata.json)
+3. Place the dataset files in the `dataset/` directory (games.csv, users.csv, recommendations.csv, games_metadata.json)
 
 ## Usage
 

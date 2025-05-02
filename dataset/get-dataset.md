@@ -1,9 +1,0 @@
-- Download the dataset from Kaggle
-- Dataset URL: 
-  - https://www.kaggle.com/datasets/antonkozyriev/game-recommendations-on-steam
-- Extract the dataset and save it in the `datasets` folder
-- The dataset contains the following files:
-  - `games.csv`
-  - `users.csv`
-  - `recommendations.csv`
-  - `games_metadata.json`

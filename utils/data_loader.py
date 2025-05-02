@@ -6,7 +6,7 @@ import os
 import datetime
 
 class DataLoader:
-    def __init__(self, data_path="datasets", sample_size=None, memory_efficient=True):
+    def __init__(self, data_path="dataset", sample_size=None, memory_efficient=True):
         """
         Initialize the DataLoader with the path to the dataset files
         
@@ -342,7 +342,7 @@ class DataLoader:
             random_state=random_state
         )
         
-        # Create train and test datasets
+        # Create train and test dataset
         self.train_data = self.recommendations_df[self.recommendations_df['user_id'].isin(train_users)]
         self.test_data = self.recommendations_df[self.recommendations_df['user_id'].isin(test_users)]
         
