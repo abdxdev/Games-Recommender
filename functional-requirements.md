@@ -34,7 +34,7 @@
    - One algorithm of your choice (e.g., Decision Tree, Random Forest, etc.)
 
 3. Compare algorithm performance using: **F1 Score, Precision, Recall, Accuracy**.
-4. Provide data **visualizations** (matplotlib, seaborn, or Streamlit charts).
+4. Provide data **visualizations**.
 5. Include a section comparing all algorithms and explain the reason behind the selected algorithm.
 6. Try different strategies to **improve results** if performance is low (e.g., feature engineering, hyperparameter tuning, etc.).
 7. Build an **interactive Streamlit interface**:

@@ -2,6 +2,11 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csr_matrix
 from sklearn.neighbors import NearestNeighbors
+from sklearn.cluster import KMeans
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 import pickle
 import os
 from utils.data_loader import DataLoader
@@ -21,6 +26,9 @@ class RecommendationModels:
         self.game_similarity_matrix = None
         self.popular_games = None
         self.knn_model = None
+        self.kmeans_model = None
+        self.nb_model = None
+        self.rf_model = None
 
     def create_matrices(self):
         self.user_game_matrix, self.hours_matrix = self.prepare_user_game_matrix()
@@ -37,32 +45,98 @@ class RecommendationModels:
             self.create_matrices()
 
         binary_matrix = self.hours_matrix.astype(bool).astype(int)
-
         game_similarity = cosine_similarity(binary_matrix.T)
-
         self.game_similarity_matrix = pd.DataFrame(game_similarity, index=binary_matrix.columns, columns=binary_matrix.columns)
 
         return self.game_similarity_matrix
-
-    def compute_popular_games(self, min_reviews=100):
-        games_df = self.data["games"].copy()
-
-        filtered_games = games_df[games_df["user_reviews"] >= min_reviews]
-
-        self.popular_games = filtered_games.sort_values(by=["positive_ratio", "user_reviews"], ascending=False).reset_index(drop=True)
-
-        return self.popular_games
 
     def build_knn_model(self, n_neighbors=10):
         if self.hours_matrix is None:
             self.create_matrices()
 
         sparse_matrix = csr_matrix(self.hours_matrix.values)
-
         self.knn_model = NearestNeighbors(metric="cosine", algorithm="brute")
         self.knn_model.fit(sparse_matrix.T)
 
         return self.knn_model
+
+    def build_kmeans_model(self, n_clusters=10):
+        if self.hours_matrix is None:
+            self.create_matrices()
+
+        scaler = StandardScaler()
+        scaled_matrix = scaler.fit_transform(self.hours_matrix.values)
+
+        self.kmeans_model = KMeans(n_clusters=n_clusters, random_state=42)
+        self.kmeans_model.fit(scaled_matrix)
+
+        return self.kmeans_model
+
+    def build_naive_bayes_model(self):
+        if self.hours_matrix is None:
+            self.create_matrices()
+
+        X = self.hours_matrix.values
+
+        user_ids = self.hours_matrix.index.tolist()
+        user_game_stats = self.data["recommendations"][self.data["recommendations"]["user_id"].isin(user_ids)].groupby("user_id").agg({"hours": "sum", "app_id": "count", "is_recommended": "mean"}).reset_index()
+
+        user_game_stats.columns = ["user_id", "total_hours", "games_owned", "positive_ratio"]
+
+        user_game_stats["user_category"] = "Medium"
+
+        user_game_stats.loc[(user_game_stats["total_hours"] < user_game_stats["total_hours"].quantile(0.33)) & (user_game_stats["games_owned"] < user_game_stats["games_owned"].quantile(0.33)), "user_category"] = "Casual"
+
+        user_game_stats.loc[(user_game_stats["total_hours"] > user_game_stats["total_hours"].quantile(0.66)) & (user_game_stats["games_owned"] > user_game_stats["games_owned"].quantile(0.66)), "user_category"] = "Hardcore"
+
+        user_game_stats.loc[(user_game_stats["total_hours"] < user_game_stats["total_hours"].quantile(0.33)) & (user_game_stats["games_owned"] > user_game_stats["games_owned"].quantile(0.66)), "user_category"] = "Collector"
+
+        user_game_stats.loc[(user_game_stats["total_hours"] > user_game_stats["total_hours"].quantile(0.66)) & (user_game_stats["games_owned"] < user_game_stats["games_owned"].quantile(0.33)), "user_category"] = "Selective"
+
+        user_categories = pd.DataFrame(index=self.hours_matrix.index)
+        user_categories = user_categories.reset_index().merge(user_game_stats[["user_id", "user_category"]], left_on="user_id", right_on="user_id", how="left").set_index("user_id")["user_category"].fillna("Medium").values
+
+        y = user_categories
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        self.nb_model = MultinomialNB()
+        self.nb_model.fit(X_train, y_train)
+
+        return self.nb_model
+
+    def build_random_forest_model(self):
+        if self.hours_matrix is None:
+            self.create_matrices()
+
+        X = self.hours_matrix.values
+
+        user_ids = self.hours_matrix.index.tolist()
+        user_game_stats = self.data["recommendations"][self.data["recommendations"]["user_id"].isin(user_ids)].groupby("user_id").agg({"hours": "sum", "app_id": "count", "is_recommended": "mean"}).reset_index()
+
+        user_game_stats.columns = ["user_id", "total_hours", "games_owned", "positive_ratio"]
+
+        user_game_stats["user_category"] = "Medium"
+
+        user_game_stats.loc[(user_game_stats["total_hours"] < user_game_stats["total_hours"].quantile(0.33)) & (user_game_stats["games_owned"] < user_game_stats["games_owned"].quantile(0.33)), "user_category"] = "Casual"
+
+        user_game_stats.loc[(user_game_stats["total_hours"] > user_game_stats["total_hours"].quantile(0.66)) & (user_game_stats["games_owned"] > user_game_stats["games_owned"].quantile(0.66)), "user_category"] = "Hardcore"
+
+        user_game_stats.loc[(user_game_stats["total_hours"] < user_game_stats["total_hours"].quantile(0.33)) & (user_game_stats["games_owned"] > user_game_stats["games_owned"].quantile(0.66)), "user_category"] = "Collector"
+
+        user_game_stats.loc[(user_game_stats["total_hours"] > user_game_stats["total_hours"].quantile(0.66)) & (user_game_stats["games_owned"] < user_game_stats["games_owned"].quantile(0.33)), "user_category"] = "Selective"
+
+        user_categories = pd.DataFrame(index=self.hours_matrix.index)
+        user_categories = user_categories.reset_index().merge(user_game_stats[["user_id", "user_category"]], left_on="user_id", right_on="user_id", how="left").set_index("user_id")["user_category"].fillna("Medium").values
+
+        y = user_categories
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        self.rf_model = RandomForestClassifier(random_state=42)
+        self.rf_model.fit(X_train, y_train)
+
+        return self.rf_model
 
     def content_based_recommendations(self, game_id, top_n=10):
         game_features = self.data_loader.get_game_features()
@@ -88,82 +162,6 @@ class RecommendationModels:
 
         return recommended_games[["app_id", "title", "rating", "positive_ratio", "user_reviews", "price_final"]]
 
-    def collaborative_filtering_recommendations(self, game_id, top_n=10):
-        if self.knn_model is None:
-            self.build_knn_model()
-
-        if game_id not in self.hours_matrix.columns:
-            return pd.DataFrame()
-
-        game_idx = self.hours_matrix.columns.get_loc(game_id)
-
-        distances, indices = self.knn_model.kneighbors(self.hours_matrix.values.T[game_idx].reshape(1, -1), n_neighbors=top_n + 1)
-
-        similar_game_indices = indices.flatten()[1:]
-        similar_game_ids = [self.hours_matrix.columns[idx] for idx in similar_game_indices]
-
-        similarity_scores = 1 - distances.flatten()[1:]
-
-        recommendations = pd.DataFrame({"app_id": similar_game_ids, "similarity_score": similarity_scores})
-
-        recommended_games = pd.merge(
-            recommendations,
-            self.data["games"][
-                [
-                    "app_id",
-                    "title",
-                    "rating",
-                    "positive_ratio",
-                    "user_reviews",
-                    "price_final",
-                ]
-            ],
-            on="app_id",
-        ).sort_values("similarity_score", ascending=False)
-
-        return recommended_games
-
-    def hybrid_recommendations(self, game_id, top_n=10, cf_weight=0.7, cb_weight=0.3):
-        cf_recs = self.collaborative_filtering_recommendations(game_id, top_n=top_n * 2)
-        cb_recs = self.content_based_recommendations(game_id, top_n=top_n * 2)
-
-        if cf_recs.empty or cb_recs.empty:
-            return cf_recs if not cf_recs.empty else cb_recs
-
-        cf_recs["cf_score"] = cf_recs["similarity_score"] / cf_recs["similarity_score"].max()
-
-        merged_recs = pd.merge(cf_recs[["app_id", "cf_score"]], cb_recs[["app_id"]], on="app_id", how="outer").fillna(0)
-
-        cb_scores = {}
-        for app_id in merged_recs["app_id"]:
-            if app_id in cb_recs["app_id"].values:
-                cb_scores[app_id] = 1.0 - cb_recs[cb_recs["app_id"] == app_id].index.item() / len(cb_recs)
-            else:
-                cb_scores[app_id] = 0
-
-        merged_recs["cb_score"] = merged_recs["app_id"].map(cb_scores)
-
-        merged_recs["hybrid_score"] = (cf_weight * merged_recs["cf_score"]) + (cb_weight * merged_recs["cb_score"])
-
-        top_recs = merged_recs.sort_values("hybrid_score", ascending=False).head(top_n)
-
-        recommended_games = pd.merge(
-            top_recs[["app_id", "hybrid_score"]],
-            self.data["games"][
-                [
-                    "app_id",
-                    "title",
-                    "rating",
-                    "positive_ratio",
-                    "user_reviews",
-                    "price_final",
-                ]
-            ],
-            on="app_id",
-        ).sort_values("hybrid_score", ascending=False)
-
-        return recommended_games
-
     def save_models(self, base_path="models"):
         os.makedirs(base_path, exist_ok=True)
 
@@ -173,73 +171,39 @@ class RecommendationModels:
         if self.game_similarity_matrix is None:
             self.compute_game_similarity()
 
-        if self.popular_games is None:
-            self.compute_popular_games()
+        model_files = {
+            "user_game_matrix.pkl": self.user_game_matrix,
+            "hours_matrix.pkl": self.hours_matrix,
+            "game_similarity_matrix.pkl": self.game_similarity_matrix,
+            "knn_model.pkl": self.knn_model if self.knn_model is not None else self.build_knn_model(),
+            "kmeans_model.pkl": self.kmeans_model if self.kmeans_model is not None else self.build_kmeans_model(),
+            "nb_model.pkl": self.nb_model if self.nb_model is not None else self.build_naive_bayes_model(),
+            "rf_model.pkl": self.rf_model if self.rf_model is not None else self.build_random_forest_model(),
+        }
 
-        if self.knn_model is None:
-            self.build_knn_model()
-
-        with open(os.path.join(base_path, "user_game_matrix.pkl"), "wb") as f:
-            pickle.dump(self.user_game_matrix, f)
-
-        with open(os.path.join(base_path, "hours_matrix.pkl"), "wb") as f:
-            pickle.dump(self.hours_matrix, f)
-
-        with open(os.path.join(base_path, "game_similarity_matrix.pkl"), "wb") as f:
-            pickle.dump(self.game_similarity_matrix, f)
-
-        with open(os.path.join(base_path, "popular_games.pkl"), "wb") as f:
-            pickle.dump(self.popular_games, f)
-
-        with open(os.path.join(base_path, "knn_model.pkl"), "wb") as f:
-            pickle.dump(self.knn_model, f)
+        for filename, model in model_files.items():
+            with open(os.path.join(base_path, filename), "wb") as f:
+                pickle.dump(model, f)
 
     def load_models(self, base_path="models"):
         try:
-            with open(os.path.join(base_path, "user_game_matrix.pkl"), "rb") as f:
-                self.user_game_matrix = pickle.load(f)
+            model_files = {
+                "user_game_matrix.pkl": "user_game_matrix",
+                "hours_matrix.pkl": "hours_matrix",
+                "game_similarity_matrix.pkl": "game_similarity_matrix",
+                "knn_model.pkl": "knn_model",
+                "kmeans_model.pkl": "kmeans_model",
+                "nb_model.pkl": "nb_model",
+                "rf_model.pkl": "rf_model",
+            }
 
-            with open(os.path.join(base_path, "hours_matrix.pkl"), "rb") as f:
-                self.hours_matrix = pickle.load(f)
-
-            with open(os.path.join(base_path, "game_similarity_matrix.pkl"), "rb") as f:
-                self.game_similarity_matrix = pickle.load(f)
-
-            with open(os.path.join(base_path, "popular_games.pkl"), "rb") as f:
-                self.popular_games = pickle.load(f)
-
-            with open(os.path.join(base_path, "knn_model.pkl"), "rb") as f:
-                self.knn_model = pickle.load(f)
+            for filename, attr_name in model_files.items():
+                file_path = os.path.join(base_path, filename)
+                if os.path.exists(file_path):
+                    with open(file_path, "rb") as f:
+                        setattr(self, attr_name, pickle.load(f))
 
             return True
         except FileNotFoundError:
             print("Models not found. Please train the models first.")
             return False
-
-    def get_game_title_by_id(self, game_id):
-        game = self.data["games"][self.data["games"]["app_id"] == game_id]
-        if not game.empty:
-            return game["title"].iloc[0]
-        return None
-
-
-if __name__ == "__main__":
-    models = RecommendationModels()
-    models.create_matrices()
-    models.compute_game_similarity()
-    models.build_knn_model()
-
-    test_game_id = models.data["games"]["app_id"].iloc[0]
-    print(f"Getting recommendations for game: {models.get_game_title_by_id(test_game_id)}")
-
-    print("\nCollaborative Filtering Recommendations:")
-    cf_recs = models.collaborative_filtering_recommendations(test_game_id)
-    print(cf_recs.head())
-
-    print("\nContent-Based Recommendations:")
-    cb_recs = models.content_based_recommendations(test_game_id)
-    print(cb_recs.head())
-
-    print("\nHybrid Recommendations:")
-    hybrid_recs = models.hybrid_recommendations(test_game_id)
-    print(hybrid_recs.head())
