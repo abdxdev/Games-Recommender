@@ -50,11 +50,8 @@ class ModelEvaluation:
         user_game_stats["user_category"] = "Medium"
 
         user_game_stats.loc[(user_game_stats["total_hours"] < user_game_stats["total_hours"].quantile(0.33)) & (user_game_stats["games_owned"] < user_game_stats["games_owned"].quantile(0.33)), "user_category"] = "Casual"
-
         user_game_stats.loc[(user_game_stats["total_hours"] > user_game_stats["total_hours"].quantile(0.66)) & (user_game_stats["games_owned"] > user_game_stats["games_owned"].quantile(0.66)), "user_category"] = "Hardcore"
-
         user_game_stats.loc[(user_game_stats["total_hours"] < user_game_stats["total_hours"].quantile(0.33)) & (user_game_stats["games_owned"] > user_game_stats["games_owned"].quantile(0.66)), "user_category"] = "Collector"
-
         user_game_stats.loc[(user_game_stats["total_hours"] > user_game_stats["total_hours"].quantile(0.66)) & (user_game_stats["games_owned"] < user_game_stats["games_owned"].quantile(0.33)), "user_category"] = "Selective"
 
         user_categories = pd.DataFrame(index=self.rec_models.hours_matrix.index)
@@ -199,13 +196,9 @@ class ModelEvaluation:
         Random Forest was selected as our fourth algorithm for several reasons:
         
         1. **Robustness to Overfitting**: Unlike single decision trees, Random Forest reduces overfitting by averaging multiple decision trees trained on different subsets of the data.
-        
         2. **Feature Importance**: It provides insights into which features are most important for classification, helping us understand user behavior patterns.
-        
         3. **Handles Mixed Data Types**: Our dataset contains various metrics about user behavior, and Random Forest naturally handles mixed data types and scales.
-        
         4. **Non-linearity**: User behaviors are often non-linear, and Random Forest captures these complex relationships better than linear models.
-        
         5. **Accuracy**: Random Forest typically achieves high accuracy in classification tasks compared to simpler models.
         
         ## Algorithm Comparison
@@ -213,11 +206,8 @@ class ModelEvaluation:
         Based on our evaluation metrics (F1 Score, Precision, Recall, and Accuracy):
         
         - **KNN**: Simple but effective for neighbor-based classification, useful as a baseline but sensitive to the choice of K.
-        
         - **Naive Bayes**: Fast and efficient with lower memory requirements, but makes strong independence assumptions that may not hold for user behavior.
-        
         - **K-Means**: Provides unsupervised clustering to identify natural groupings in the data, complementing our supervised methods.
-        
         - **Random Forest**: Typically achieves the highest accuracy and F1 score among the tested algorithms, making it particularly valuable for predicting user preferences.
         
         ## Future Improvements

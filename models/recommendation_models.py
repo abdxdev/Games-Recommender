@@ -84,15 +84,10 @@ class RecommendationModels:
         user_game_stats.columns = ["user_id", "total_hours", "games_owned", "positive_ratio"]
 
         user_game_stats["user_category"] = "Medium"
-
         user_game_stats.loc[(user_game_stats["total_hours"] < user_game_stats["total_hours"].quantile(0.33)) & (user_game_stats["games_owned"] < user_game_stats["games_owned"].quantile(0.33)), "user_category"] = "Casual"
-
         user_game_stats.loc[(user_game_stats["total_hours"] > user_game_stats["total_hours"].quantile(0.66)) & (user_game_stats["games_owned"] > user_game_stats["games_owned"].quantile(0.66)), "user_category"] = "Hardcore"
-
         user_game_stats.loc[(user_game_stats["total_hours"] < user_game_stats["total_hours"].quantile(0.33)) & (user_game_stats["games_owned"] > user_game_stats["games_owned"].quantile(0.66)), "user_category"] = "Collector"
-
         user_game_stats.loc[(user_game_stats["total_hours"] > user_game_stats["total_hours"].quantile(0.66)) & (user_game_stats["games_owned"] < user_game_stats["games_owned"].quantile(0.33)), "user_category"] = "Selective"
-
         user_categories = pd.DataFrame(index=self.hours_matrix.index)
         user_categories = user_categories.reset_index().merge(user_game_stats[["user_id", "user_category"]], left_on="user_id", right_on="user_id", how="left").set_index("user_id")["user_category"].fillna("Medium").values
 
@@ -119,13 +114,9 @@ class RecommendationModels:
         user_game_stats["user_category"] = "Medium"
 
         user_game_stats.loc[(user_game_stats["total_hours"] < user_game_stats["total_hours"].quantile(0.33)) & (user_game_stats["games_owned"] < user_game_stats["games_owned"].quantile(0.33)), "user_category"] = "Casual"
-
         user_game_stats.loc[(user_game_stats["total_hours"] > user_game_stats["total_hours"].quantile(0.66)) & (user_game_stats["games_owned"] > user_game_stats["games_owned"].quantile(0.66)), "user_category"] = "Hardcore"
-
         user_game_stats.loc[(user_game_stats["total_hours"] < user_game_stats["total_hours"].quantile(0.33)) & (user_game_stats["games_owned"] > user_game_stats["games_owned"].quantile(0.66)), "user_category"] = "Collector"
-
         user_game_stats.loc[(user_game_stats["total_hours"] > user_game_stats["total_hours"].quantile(0.66)) & (user_game_stats["games_owned"] < user_game_stats["games_owned"].quantile(0.33)), "user_category"] = "Selective"
-
         user_categories = pd.DataFrame(index=self.hours_matrix.index)
         user_categories = user_categories.reset_index().merge(user_game_stats[["user_id", "user_category"]], left_on="user_id", right_on="user_id", how="left").set_index("user_id")["user_category"].fillna("Medium").values
 
