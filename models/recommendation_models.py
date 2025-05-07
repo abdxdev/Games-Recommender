@@ -1,14 +1,16 @@
+import os
+import pickle
+
 import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csr_matrix
-from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import KMeans
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-import pickle
-import os
+from sklearn.metrics.pairwise import cosine_similarity
+
 from utils.data_loader import DataLoader
 
 
