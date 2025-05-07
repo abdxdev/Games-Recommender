@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from sklearn.decomposition import PCA
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, silhouette_score
@@ -41,13 +42,9 @@ class ModelEvaluation:
             self.rec_models.create_matrices()
 
         X = self.rec_models.hours_matrix.values
-
         user_ids = self.rec_models.hours_matrix.index.tolist()
-
         user_game_stats = self.rec_models.data["recommendations"][self.rec_models.data["recommendations"]["user_id"].isin(user_ids)].groupby("user_id").agg({"hours": "sum", "app_id": "count", "is_recommended": "mean"}).reset_index()
-
         user_game_stats.columns = ["user_id", "total_hours", "games_owned", "positive_ratio"]
-
         user_game_stats["user_category"] = "Medium"
 
         user_game_stats.loc[(user_game_stats["total_hours"] < user_game_stats["total_hours"].quantile(0.33)) & (user_game_stats["games_owned"] < user_game_stats["games_owned"].quantile(0.33)), "user_category"] = "Casual"
@@ -96,8 +93,6 @@ class ModelEvaluation:
             "f1": f1_score(y_test, y_pred_rf, average="weighted"),
             "confusion_matrix": confusion_matrix(y_test, y_pred_rf),
         }
-
-        from sklearn.neighbors import KNeighborsClassifier
 
         knn_classifier = KNeighborsClassifier(n_neighbors=5)
         knn_classifier.fit(X_train, y_train)
@@ -223,28 +218,3 @@ class ModelEvaluation:
         """
 
         return explanation
-
-
-if __name__ == "__main__":
-    evaluator = ModelEvaluation()
-
-    classification_results = evaluator.evaluate_classification_models()
-    print("\nClassification Results:")
-    for model, results in classification_results.items():
-        if model != "label_mapping":
-            print(f"\n{model.upper()} Metrics:")
-            for metric, value in results.items():
-                if metric != "confusion_matrix":
-                    print(f"{metric}: {value:.4f}")
-
-    clustering_results = evaluator.evaluate_clustering()
-    print("\nClustering Results:")
-    print(f"Inertia: {clustering_results['kmeans']['inertia']:.4f}")
-    print(f"Silhouette Score: {clustering_results['kmeans']['silhouette']:.4f}")
-
-    comparison = evaluator.compare_algorithms()
-    print("\nAlgorithm Comparison:")
-    print(comparison)
-
-    evaluator.visualize_clusters()
-    print("\nCluster visualizations saved to 'models' directory")

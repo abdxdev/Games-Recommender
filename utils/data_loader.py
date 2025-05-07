@@ -269,14 +269,3 @@ class DataLoader:
 def load_data(sample_size=None, memory_efficient=True):
     loader = DataLoader(sample_size=sample_size, memory_efficient=memory_efficient)
     return loader.load_all_data()
-
-
-if __name__ == "__main__":
-    loader = DataLoader(sample_size=10, memory_efficient=True)
-    data = loader.load_all_data()
-    print(f"Loaded {len(data['games'])} games")
-    print(f"Loaded {len(data['users'])} users")
-    print(f"Loaded {len(data['recommendations'])} recommendations")
-    print(f"Loaded {len(data['games_metadata'])} game metadata entries")
-    print(f"Train set size: {len(data['train_data'])}")
-    print(f"Test set size: {len(data['test_data'])}")

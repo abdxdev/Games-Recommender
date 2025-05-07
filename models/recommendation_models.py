@@ -144,15 +144,11 @@ class RecommendationModels:
                 game_features[f"tag_{tag}"] = game_features["tags"].apply(lambda x: 1 if tag in x else 0 if isinstance(x, list) else 0)
 
         numeric_features = game_features.select_dtypes(include=["int64", "float64", "bool"]).drop(["app_id", "price_original", "price_final", "discount"], axis=1, errors="ignore")
-
         similarities = cosine_similarity(numeric_features, numeric_features)
-
         sim_df = pd.DataFrame(similarities, index=game_features["app_id"], columns=game_features["app_id"])
-
         similar_games = sim_df[game_id].sort_values(ascending=False)[1 : top_n + 1]
-
         recommended_games = game_features[game_features["app_id"].isin(similar_games.index)]
-
+        
         return recommended_games[["app_id", "title", "rating", "positive_ratio", "user_reviews", "price_final"]]
 
     def save_models(self, base_path="models"):
